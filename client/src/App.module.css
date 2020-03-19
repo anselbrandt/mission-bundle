@@ -1,0 +1,112 @@
+.app {
+  text-align: center;
+  background-color: #4f5666;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 1em;
+  color: white;
+}
+
+.tree {
+  text-align: left;
+  padding: 1em;
+}
+
+.container {
+  margin: 1em;
+}
+
+.row {
+  display: flex;
+  flex-direction: row;
+}
+
+.textarea {
+  background-color: #4f5666;
+  outline: 2px solid tomato;
+  border: none;
+  color: gainsboro;
+  font-size: 0.75em;
+  padding: 0.5em;
+  width: 20em;
+}
+
+::placeholder {
+  color: gainsboro;
+}
+
+.textarea:hover {
+  background-color: #4c5261;
+}
+
+.textarea:focus {
+  background-color: #494d5c;
+  outline-offset: 0;
+}
+
+.button {
+  background-color: #4f5666;
+  outline: 2px solid tomato;
+  border: none;
+  color: gainsboro;
+  font-size: 1em;
+  padding: 0.1em;
+  margin-left: 1em;
+  width: 1.5em;
+}
+
+.button:hover {
+  background-color: #494d5c;
+  color: white;
+}
+
+.button:active {
+  background-color: tomato;
+  color: white;
+}
+
+.historyContainer {
+  background-color: #4f5666;
+  outline: 2px solid tomato;
+  border: none;
+  color: gainsboro;
+  font-size: 0.75em;
+  padding: 0.5em;
+  margin-left: 0;
+  margin-bottom: 1em;
+  width: 20em;
+  height: 10em;
+  position: relative;
+}
+
+.history {
+  text-align: left;
+  position: absolute;
+  bottom: 0;
+  overflow: auto;
+  max-height: 10em;
+  width: 20em;
+  scrollbar-color: tomato #4f5666;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track:hover {
+  border-radius: 5px;
+  box-shadow: inset 0 0 2px tomato;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #4f5666;
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: tomato;
+  border-radius: 5px;
+}

@@ -1,0 +1,7 @@
+.tooltip {
+  position: absolute;
+  z-index: 1;
+  pointer-events: none;
+  color: black;
+  font-size: 0.75em;
+}
