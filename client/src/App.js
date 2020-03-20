@@ -46,7 +46,7 @@ function App() {
   useEffect(() => {
     if (socket.connected && location) {
       const identity = {
-        client: 'web-client',
+        client: 'webclient',
         id: socket.id,
         location: location,
       };

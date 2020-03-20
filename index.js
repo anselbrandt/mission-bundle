@@ -1,5 +1,6 @@
-"use strict";
-
+const express = require("express");
+const socketIO = require("socket.io");
+const { Client } = require("pg");
 const path = require("path");
 const publicIp = require("public-ip");
 const fetch = require("node-fetch");
@@ -7,11 +8,7 @@ const fruitname = require("fruitname");
 require("dotenv").config();
 const api_key = process.env.API_KEY;
 
-const express = require("express");
-const socketIO = require("socket.io");
-
 const PORT = process.env.PORT || 4000;
-const INDEX = "/index.html";
 
 const server = express()
   .use(express.static(path.join(__dirname, "client/build")))
@@ -21,6 +18,22 @@ const server = express()
   .listen(PORT, () => console.log(`Listening on ${PORT}`));
 
 const io = socketIO(server);
+
+const pg = new Client({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    // change to true in prod
+    rejectUnauthorized: false
+  }
+});
+
+pg.connect(error => {
+  if (error) {
+    console.log("Failed to connect to db");
+  } else {
+    console.log("Connected to db");
+  }
+});
 
 const clients = [];
 
@@ -43,15 +56,36 @@ fetch(`https://www.googleapis.com/geolocation/v1/geolocate?key=${api_key}`, {
   });
 
 io.on("connection", socket => {
-  if (socket.handshake.headers["cookie"]) {
-    console.log("cookie: ", socket.handshake.headers["cookie"]);
-  } else console.log("no cookie, socket.id: ", socket.id);
-
+  const time = Date.now();
   const name = fruitname();
   const id = socket.id;
   const ip = socket.handshake.headers["x-forwarded-for"];
   const address = socket.handshake.address;
   const userAgent = socket.handshake.headers["user-agent"];
+  if (socket.handshake.headers["cookie"]) {
+    const cookie = socket.handshake.headers["cookie"];
+    const text = "SELECT * FROM users WHERE useridandtime LIKE $1;";
+    const values = [cookie.replace("io=", "") + "%"];
+    console.log(values);
+    pg.query(text, values)
+      .then(response => {
+        console.log(response.rows);
+        io.emit("server", JSON.stringify(response.rows));
+      })
+      .catch(error => console.log(error));
+  } else {
+    const text =
+      "INSERT INTO users(useridandtime, username) VALUES($1, $2) RETURNING *";
+    const useridandtime = id + "#" + time;
+    const values = [useridandtime, name];
+    pg.query(text, values)
+      .then(response => {
+        console.log(response.rows);
+        io.emit("server", JSON.stringify(response.rows));
+      })
+      .catch(error => console.log(error));
+  }
+
   const client = {
     name: name,
     id: id,
