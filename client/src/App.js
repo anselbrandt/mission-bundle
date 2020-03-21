@@ -18,8 +18,9 @@ const Montreal = {
   bearing: 0,
 };
 
-const socket = io('wss://missioncontrol.herokuapp.com');
-//const socket = io('http://mini.local:4000');
+const SOCKETSERVER =
+  process.env.REACT_APP_SOCKETSERVER || 'wss://missioncontrol.herokuapp.com';
+const socket = io(SOCKETSERVER);
 
 function App() {
   const [input, setInput] = useState();

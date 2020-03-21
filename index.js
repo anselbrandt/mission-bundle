@@ -2,6 +2,7 @@ const express = require("express");
 const socketIO = require("socket.io");
 const { Client } = require("pg");
 const path = require("path");
+const { v4: uuidv4 } = require("uuid");
 const publicIp = require("public-ip");
 const fetch = require("node-fetch");
 const fruitname = require("fruitname");
@@ -11,18 +12,26 @@ const api_key = process.env.API_KEY;
 const PORT = process.env.PORT || 4000;
 
 const server = express()
+  .use((request, response, next) => {
+    if (!request.headers.cookie) {
+      response.cookie("wsid", uuidv4(), {
+        expires: new Date(Date.now() + 9999999999),
+        httpOnly: true
+      });
+    }
+    next();
+  })
   .use(express.static(path.join(__dirname, "client/build")))
-  .get("*", (req, res) => {
-    res.sendFile(path.join(__dirname + "/client/build/index.html"));
+  .get("*", (request, response) => {
+    response.sendFile(path.join(__dirname + "/client/build/index.html"));
   })
   .listen(PORT, () => console.log(`Listening on ${PORT}`));
 
-const io = socketIO(server);
+const io = socketIO(server, { cookie: false });
 
 const pg = new Client({
   connectionString: process.env.DATABASE_URL,
   ssl: {
-    // change to true in prod
     rejectUnauthorized: false
   }
 });
@@ -51,43 +60,30 @@ fetch(`https://www.googleapis.com/geolocation/v1/geolocate?key=${api_key}`, {
       client: "server",
       location: response.location
     };
-    console.log(serverLocation);
+    console.log("Server location: ", serverLocation);
     clients.push(serverLocation);
   });
 
 io.on("connection", socket => {
-  const time = Date.now();
-  const name = fruitname();
   const id = socket.id;
   const ip = socket.handshake.headers["x-forwarded-for"];
   const address = socket.handshake.address;
   const userAgent = socket.handshake.headers["user-agent"];
   if (socket.handshake.headers["cookie"]) {
-    const cookie = socket.handshake.headers["cookie"];
+    const userid = socket.handshake.headers["cookie"];
     const text = "SELECT * FROM users WHERE useridandtime LIKE $1;";
-    const values = [cookie.replace("io=", "") + "%"];
-    console.log(values);
+    const values = [userid.replace("wsid=", "") + "%"];
     pg.query(text, values)
       .then(response => {
-        console.log(response.rows);
-        io.emit("server", JSON.stringify(response.rows));
-      })
-      .catch(error => console.log(error));
-  } else {
-    const text =
-      "INSERT INTO users(useridandtime, username) VALUES($1, $2) RETURNING *";
-    const useridandtime = id + "#" + time;
-    const values = [useridandtime, name];
-    pg.query(text, values)
-      .then(response => {
-        console.log(response.rows);
-        io.emit("server", JSON.stringify(response.rows));
+        if (response.rows.length === 0) {
+          console.log("No records of this userid");
+        }
       })
       .catch(error => console.log(error));
   }
 
   const client = {
-    name: name,
+    name: fruitname(),
     id: id,
     ip: ip,
     address: address,
