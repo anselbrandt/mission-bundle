@@ -126,7 +126,20 @@ io.on("connection", socket => {
       identity.client;
     clients[clients.findIndex(client => client.id === id)].location =
       identity.location;
-    io.emit("connected", JSON.stringify(clients));
+    if (ip !== undefined) {
+      fetch(`http://ip-api.com/json/${ip}`, {
+        method: "GET"
+      })
+        .then(response => response.json())
+        .then(async response => {
+          console.log("ip-api response: ", response);
+          clients[
+            clients.findIndex(client => client.id === id)
+          ].geolocation = response;
+          io.emit("connected", JSON.stringify(clients));
+        });
+    } else io.emit("connected", JSON.stringify(clients));
+
     // console.log(
     //   "connected",
     //   clients[clients.findIndex(client => client.id === id)]
