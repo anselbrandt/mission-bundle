@@ -70,26 +70,55 @@ io.on("connection", socket => {
   const address = socket.handshake.address;
   const userAgent = socket.handshake.headers["user-agent"];
   if (socket.handshake.headers["cookie"]) {
-    const userid = socket.handshake.headers["cookie"];
+    const userid = socket.handshake.headers["cookie"].replace("wsid=", "");
     const text = "SELECT * FROM users WHERE useridandtime LIKE $1;";
     const values = [userid.replace("wsid=", "") + "%"];
     pg.query(text, values)
       .then(response => {
         if (response.rows.length === 0) {
-          console.log("No records of this userid");
+          const time = Date.now();
+          const name = fruitname();
+          const text =
+            "INSERT INTO users(useridandtime, username) VALUES($1, $2) RETURNING *";
+          const useridandtime = userid + "#" + time;
+          const values = [useridandtime, name];
+          pg.query(text, values)
+            .then(response => {
+              console.log("Postgres response: ", response.rows);
+              io.emit("server", JSON.stringify(response.rows));
+            })
+            .catch(error => console.log(error));
+          const client = {
+            name: name,
+            id: id,
+            ip: ip,
+            address: address,
+            userAgent: userAgent
+          };
+          clients.push(client);
+        } else {
+          const [results] = response.rows;
+          const client = {
+            name: results.username,
+            id: id,
+            ip: ip,
+            address: address,
+            userAgent: userAgent
+          };
+          clients.push(client);
         }
       })
       .catch(error => console.log(error));
+  } else {
+    const client = {
+      name: fruitname(),
+      id: id,
+      ip: ip,
+      address: address,
+      userAgent: userAgent
+    };
+    clients.push(client);
   }
-
-  const client = {
-    name: fruitname(),
-    id: id,
-    ip: ip,
-    address: address,
-    userAgent: userAgent
-  };
-  clients.push(client);
 
   socket.on("identity", data => {
     const identity = JSON.parse(data);
