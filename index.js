@@ -1,4 +1,5 @@
 const express = require("express");
+const cors = require("cors");
 const socketIO = require("socket.io");
 const { Client } = require("pg");
 const path = require("path");
@@ -12,6 +13,7 @@ const api_key = process.env.API_KEY;
 const PORT = process.env.PORT || 4000;
 
 const server = express()
+  .use(cors)
   .use((request, response, next) => {
     if (!request.headers.cookie) {
       response.cookie("wsid", uuidv4(), {
