@@ -18,7 +18,7 @@ const server = express()
     if (!request.headers.cookie) {
       response.cookie("wsid", uuidv4(), {
         expires: new Date(Date.now() + 9999999999),
-        httpOnly: true
+        httpOnly: true,
       });
     }
     next();
@@ -34,11 +34,11 @@ const io = socketIO(server, { cookie: false });
 const pg = new Client({
   connectionString: process.env.DATABASE_URL,
   ssl: {
-    rejectUnauthorized: false
-  }
+    rejectUnauthorized: false,
+  },
 });
 
-pg.connect(error => {
+pg.connect((error) => {
   if (error) {
     console.log("Failed to connect to db");
   } else {
@@ -50,23 +50,23 @@ const clients = [];
 
 fetch(`https://www.googleapis.com/geolocation/v1/geolocate?key=${api_key}`, {
   method: "POST",
-  body: JSON.stringify({ considerIp: true })
+  body: JSON.stringify({ considerIp: true }),
 })
-  .then(response => response.json())
-  .then(async response => {
+  .then((response) => response.json())
+  .then(async (response) => {
     const serverIP = await publicIp.v4();
     const serverLocation = {
       name: "Server",
       id: "server",
       ip: serverIP,
       client: "server",
-      location: response.location
+      location: response.location,
     };
     console.log("Server location: ", serverLocation);
     clients.push(serverLocation);
   });
 
-io.on("connection", socket => {
+io.on("connection", (socket) => {
   const id = socket.id;
   const ip = socket.handshake.headers["x-forwarded-for"];
   const address = socket.handshake.address;
@@ -76,7 +76,7 @@ io.on("connection", socket => {
     const text = "SELECT * FROM users WHERE useridandtime LIKE $1;";
     const values = [userid.replace("wsid=", "") + "%"];
     pg.query(text, values)
-      .then(response => {
+      .then((response) => {
         if (response.rows.length === 0) {
           const time = Date.now();
           const name = fruitname();
@@ -85,17 +85,17 @@ io.on("connection", socket => {
           const useridandtime = userid + "#" + time;
           const values = [useridandtime, name];
           pg.query(text, values)
-            .then(response => {
+            .then((response) => {
               console.log("Postgres response: ", response.rows);
               io.emit("server", JSON.stringify(response.rows));
             })
-            .catch(error => console.log(error));
+            .catch((error) => console.log(error));
           const client = {
             name: name,
             id: id,
             ip: ip,
             address: address,
-            userAgent: userAgent
+            userAgent: userAgent,
           };
           clients.push(client);
         } else {
@@ -105,70 +105,71 @@ io.on("connection", socket => {
             id: id,
             ip: ip,
             address: address,
-            userAgent: userAgent
+            userAgent: userAgent,
           };
           clients.push(client);
         }
       })
-      .catch(error => console.log(error));
+      .catch((error) => console.log(error));
   } else {
     const client = {
       name: fruitname(),
       id: id,
       ip: ip,
       address: address,
-      userAgent: userAgent
+      userAgent: userAgent,
     };
     clients.push(client);
   }
 
-  socket.on("identity", data => {
+  socket.on("identity", (data) => {
     const identity = JSON.parse(data);
-    clients[clients.findIndex(client => client.id === id)].client =
+    clients[clients.findIndex((client) => client.id === id)].client =
       identity.client;
-    clients[clients.findIndex(client => client.id === id)].location =
+    clients[clients.findIndex((client) => client.id === id)].location =
       identity.location;
     if (ip !== undefined) {
       fetch(`http://ip-api.com/json/${ip}`, {
-        method: "GET"
+        method: "GET",
       })
-        .then(response => response.json())
-        .then(async response => {
+        .then((response) => response.json())
+        .then(async (response) => {
           console.log("ip-api response: ", response);
           clients[
-            clients.findIndex(client => client.id === id)
+            clients.findIndex((client) => client.id === id)
           ].geolocation = response;
           io.emit("connected", JSON.stringify(clients));
         });
     } else io.emit("connected", JSON.stringify(clients));
 
-    // console.log(
-    //   "connected",
-    //   clients[clients.findIndex(client => client.id === id)]
-    // );
+    console.log(
+      "connected",
+      clients[clients.findIndex((client) => client.id === id)]
+    );
   });
 
   socket.on("disconnect", () => {
-    const disconnected = clients[clients.findIndex(client => client.id === id)];
+    const disconnected =
+      clients[clients.findIndex((client) => client.id === id)];
     io.emit("disconnected", JSON.stringify(disconnected));
     console.log("disconnected", {
       name: disconnected.name,
-      id: disconnected.id
+      id: disconnected.id,
     });
     clients.splice(
-      clients.findIndex(client => client.id === id),
+      clients.findIndex((client) => client.id === id),
       1
     );
     io.emit("connected", JSON.stringify(clients));
   });
 
-  socket.on("web", data => {
+  socket.on("web", (data) => {
     io.emit("web", data);
   });
-  socket.on("pi data", data => {
+  socket.on("pi data", (data) => {
     io.emit("pi data", data);
   });
-  socket.on("pi message", data => {
+  socket.on("pi message", (data) => {
     io.emit("pi message", data);
   });
 });
