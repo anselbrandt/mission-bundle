@@ -77,24 +77,32 @@ function App() {
     socket.on('connected', data => {
       const message = JSON.parse(data);
       setClients(message);
-      const locations = message
+      const clientLocations = message
+        .filter(client => client.location)
         .map(client => {
           return client.location;
-        })
-        .map(location => {
-          return [location.lng, location.lat];
         });
-      const points = multiPoint(locations);
-      const bounding = bbox(points);
-      const corners = [bounding.slice(0, 2), bounding.slice(2, 4)];
-      const viewport = new WebMercatorViewport({
-        width: width * 0.6,
-        height: height * 0.4,
-      }).fitBounds(corners, {
-        padding: Math.min(width * 0.6, height * 0.4) * 0.25,
-      });
-      setViewState(viewport);
-      setZoomedViewport(viewport);
+      if (clientLocations.length > 1) {
+        const locations = message
+          .filter(client => client.location)
+          .map(client => {
+            return client.location;
+          })
+          .map(location => {
+            return [location.lng, location.lat];
+          });
+        const points = multiPoint(locations);
+        const bounding = bbox(points);
+        const corners = [bounding.slice(0, 2), bounding.slice(2, 4)];
+        const viewport = new WebMercatorViewport({
+          width: width * 0.6,
+          height: height * 0.4,
+        }).fitBounds(corners, {
+          padding: Math.min(width * 0.6, height * 0.4) * 0.25,
+        });
+        setViewState(viewport);
+        setZoomedViewport(viewport);
+      }
     });
   }, [width, height]);
 
