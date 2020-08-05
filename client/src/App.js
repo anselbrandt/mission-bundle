@@ -29,7 +29,7 @@ function App() {
   const { width, height } = useGetViewport();
   const [input, setInput] = useState();
   const [history, setHistory] = useState([]);
-  const [piData, setPiData] = useState([]);
+  // const [piData, setPiData] = useState([]);
   const [newData, setNewData] = useState();
   const [time, setTime] = useState();
   const [clients, setClients] = useState();
@@ -68,7 +68,7 @@ function App() {
       setHistory(currentHistory => [...currentHistory, `pi> ${data}`]);
     });
     socket.on('pi data', data => {
-      setPiData(currentData => [...currentData, JSON.parse(data)]);
+      // setPiData(currentData => [...currentData, JSON.parse(data)]);
       setNewData(JSON.parse(data));
     });
     socket.on('time', timeString => {
