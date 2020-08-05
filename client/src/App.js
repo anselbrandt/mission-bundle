@@ -2,13 +2,16 @@ import React, { useState, useRef, useEffect } from 'react';
 import styles from './App.module.css';
 import io from 'socket.io-client';
 import Map from './Map';
-import { FlyToInterpolator } from 'react-map-gl';
+import { FlyToInterpolator, WebMercatorViewport } from 'react-map-gl';
 import Time from './Time';
 import Debug from './Debug';
 import Console from './Console';
 import ThreeD from './ThreeD';
 import Tree from './Tree';
 import useFetchLocation from './useFetchLocation';
+import { multiPoint } from '@turf/helpers';
+import bbox from '@turf/bbox';
+import useGetViewport from './useGetViewport';
 
 const Montreal = {
   longitude: -73.648657,
@@ -23,6 +26,7 @@ const SOCKETSERVER =
 const socket = io(SOCKETSERVER);
 
 function App() {
+  const { width, height } = useGetViewport();
   const [input, setInput] = useState();
   const [history, setHistory] = useState([]);
   const [piData, setPiData] = useState([]);
@@ -30,7 +34,10 @@ function App() {
   const [time, setTime] = useState();
   const [clients, setClients] = useState();
   const [viewState, setViewState] = useState(Montreal);
+  const [zoomedViewport, setZoomedViewport] = useState();
+
   const handleChangeViewState = ({ viewState }) => setViewState(viewState);
+
   const handleFlyTo = destination => {
     setViewState({
       ...viewState,
@@ -39,6 +46,7 @@ function App() {
       transitionInterpolator: new FlyToInterpolator(),
     });
   };
+
   const inputRef = useRef();
   const logRef = useRef();
 
@@ -69,6 +77,24 @@ function App() {
     socket.on('connected', data => {
       const message = JSON.parse(data);
       setClients(message);
+      const locations = message
+        .map(client => {
+          return client.location;
+        })
+        .map(location => {
+          return [location.lng, location.lat];
+        });
+      const points = multiPoint(locations);
+      const bounding = bbox(points);
+      const corners = [bounding.slice(0, 2), bounding.slice(2, 4)];
+      const viewport = new WebMercatorViewport({
+        width: width * 0.6,
+        height: height * 0.4,
+      }).fitBounds(corners, {
+        padding: Math.min(width * 0.6, height * 0.4) * 0.25,
+      });
+      setViewState(viewport);
+      setZoomedViewport(viewport);
     });
   }, []);
 
@@ -97,8 +123,8 @@ function App() {
       </div>
       <div>
         <Map
-          width="60vw"
-          height="40vh"
+          width={width * 0.6}
+          height={height * 0.4}
           viewState={viewState}
           onViewStateChange={handleChangeViewState}
           clients={clients}
@@ -107,6 +133,11 @@ function App() {
       <div>
         <button onClick={() => handleFlyTo(Montreal)}>Montreal</button>
       </div>
+      {zoomedViewport ? (
+        <div>
+          <button onClick={() => handleFlyTo(zoomedViewport)}>Zoom Out</button>
+        </div>
+      ) : null}
       <div>
         <Debug clients={clients} />
       </div>
