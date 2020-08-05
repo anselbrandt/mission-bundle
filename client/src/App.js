@@ -96,7 +96,7 @@ function App() {
       setViewState(viewport);
       setZoomedViewport(viewport);
     });
-  }, []);
+  }, [width, height]);
 
   useEffect(() => {
     if (logRef.current) {
